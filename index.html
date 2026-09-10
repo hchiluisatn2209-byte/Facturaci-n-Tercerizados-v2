@@ -479,6 +479,10 @@ function processCSV(text){
     }else if(e==='CT'){
       tercs[t].factCT+=f;
       tercs[t].svcCT++;
+      // También contar en donuts para que todos los gráficos coincidan con el total
+      tercs[t].enlace[enl]++;
+      tercs[t].tipo[tipo]++;
+      tercs[t].cliTipo[cTipo]++;
     }
   });
 
