@@ -757,7 +757,7 @@ function renderDonut(canvasId,totalId,legendId,labels,data,colors){
     type:'doughnut',
     data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0,hoverOffset:4}]},
     options:{responsive:true,maintainAspectRatio:true,cutout:'72%',
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+fmtN(c.raw)+' ('+(total>0?(c.raw/total*100).toFixed(1):'0')+'%)'}}}}}
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){var pct=total>0?((c.raw/total)*100).toFixed(1):'0';return c.label+': '+fmtN(c.raw)+' ('+pct+'%)';}}}}}
   });
 }
 
