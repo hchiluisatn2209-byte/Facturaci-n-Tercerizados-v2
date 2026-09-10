@@ -304,16 +304,48 @@ function keyToLabel(k){
 
 function parseCSV(text){
   const rows=[];
-  const lines=text.split('\n');
-  for(const line of lines){
-    const r=[];let c='',q=false;
-    for(let i=0;i<line.length;i++){
-      if(line[i]==='"'){q=!q;}
-      else if(line[i]===','&&!q){r.push(c);c='';}
-      else c+=line[i];
+  // Normalizar saltos de línea
+  const normalized=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  let i=0, n=normalized.length;
+  while(i<=n){
+    const row=[];
+    // Leer cada campo de la fila
+    while(i<=n){
+      if(i===n||normalized[i]==='\n'){
+        row.push('');i++;break;
+      }
+      if(normalized[i]==='"'){
+        // Campo entre comillas
+        i++; // saltar la comilla de apertura
+        let field='';
+        while(i<n){
+          if(normalized[i]==='"'){
+            if(i+1<n&&normalized[i+1]==='"'){
+              // Comilla escapada ""
+              field+='"';i+=2;
+            } else {
+              i++; break; // comilla de cierre
+            }
+          } else {
+            field+=normalized[i++];
+          }
+        }
+        row.push(field);
+        // Saltar la coma o el salto de línea después del campo
+        if(i<n&&normalized[i]===',') i++;
+        else if(i<=n&&(normalized[i]==='\n'||i===n)){i++;break;}
+      } else {
+        // Campo sin comillas
+        let field='';
+        while(i<n&&normalized[i]!==','&&normalized[i]!=='\n'){
+          field+=normalized[i++];
+        }
+        row.push(field);
+        if(i<n&&normalized[i]===',') i++;
+        else if(i<=n&&(normalized[i]==='\n'||i===n)){i++;break;}
+      }
     }
-    r.push(c);
-    rows.push(r);
+    if(row.length>1||(row.length===1&&row[0]!=='')) rows.push(row);
   }
   return rows;
 }
