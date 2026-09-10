@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Ejecutivo – Tercerizados | GTN Proyectos e Implementación</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap');
 :root{
@@ -274,6 +275,8 @@ footer{text-align:center;padding:16px 36px;border-top:1px solid var(--border);fo
 // ═══════════════════════════════════════════════════════
 // CONFIGURACIÓN
 // ═══════════════════════════════════════════════════════
+// Registrar plugin datalabels solo para el chart de detalle
+Chart.register(ChartDataLabels);
 const SHEET_ID='1W_48F6gUnrTmuUvqXKkHaTxk559yfbZVeBxpR7tAT78';
 const INFORME_2024_GID='2088197525';
 
@@ -438,6 +441,7 @@ function processCSV(text){
   const idCol=headers.findIndex(h=>h.includes('ID')&&h.includes('FACTUR')&&!h.includes('NUEVO'));
   const factCol=headers.findIndex(h=>h==='FACTURACION'||(h.includes('FACTURACI')&&!h.includes('ID')&&!h.includes('MES')&&!h.includes('VALOR')&&!h.includes('CUADRO')&&!h.includes('NUEVO')));
   const estadoCol=headers.findIndex(h=>h==='ESTADO');
+  const detCol=headers.findIndex(h=>h.includes('DETALLE')&&h.includes('SERV'));
   const tipoTercCol=headers.findIndex(h=>h.includes('TIPO_TERCER'));
   const enlaceCol=headers.findIndex(h=>h.includes('TIPO')&&h.includes('ENLACE'));
   const cliTipoCol=headers.findIndex(h=>h.includes('TIPO')&&h.includes('CLIENTE'));
@@ -471,6 +475,8 @@ function processCSV(text){
       tercs[t].enlace[enl]++;
       tercs[t].tipo[tipo]++;
       tercs[t].cliTipo[cTipo]++;
+      const det=detCol>=0?(row[detCol]||'').trim().toUpperCase():'INSTALACIÓN';
+      if(det)tercs[t].detalle[det]=(tercs[t].detalle[det]||0)+1;
       if(cli){tercs[t].clientes[cli]=(tercs[t].clientes[cli]||0)+1;clientesMap[cli]=(clientesMap[cli]||0)+1;}
     }else if(e==='CT'){
       tercs[t].factCT+=f;
@@ -479,15 +485,17 @@ function processCSV(text){
   });
 
   let totFact=0,totSvc=0;
+  const detalleMap={};
   Object.values(tercs).forEach(d=>{
     d.fact=d.factA+d.factCT;
     d.svcACount=d.svcA.size;d.svcCTCount=d.svcCT.size;d.svcCount=d.svcACount+d.svcCTCount;
     totFact+=d.fact;totSvc+=d.svcCount;
+    Object.entries(d.detalle||{}).forEach(([k,v])=>detalleMap[k]=(detalleMap[k]||0)+v);
   });
   const totCli=Object.keys(clientesMap).length;
   const topCli=Object.entries(clientesMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
 
-  return{tercs,totFact,totSvc,totCli,topCli};
+  return{tercs,totFact,totSvc,totCli,topCli,detalleMap};
 }
 
 // ═══════════════════════════════════════════════════════
@@ -681,18 +689,39 @@ function render(){
       <span class="client-svc">${n}</span>
     </div>`).join('');
 
-  // Detalle donut (tipo servicio como bar horizontal)
-  const detalleLabels=['Últ. Milla','Fibra Oscura','Ult. Milla Mixta','Capacidad/Starlink','Otros'];
-  const detalleData=[tipoTot.ULTIMA_MILLA,tipoTot.FIBRA_OSCURA,tipoTot.ULTIMA_MILLA_MIXTA,tipoTot.CAPACIDAD,tipoTot.OTROS];
-  const detalleColors=['#00B0F0','#FF44B0','#FFA700','#8B6FE8','#64B4F5'];
+  // Detalle de servicio — barras verticales con valores encima
+  const detalleGlob={};
+  tercEntries.forEach(([,d])=>Object.entries(d.detalle||{}).forEach(([k,v])=>detalleGlob[k]=(detalleGlob[k]||0)+v));
+  const detSorted=Object.entries(detalleGlob).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const detLabels=detSorted.map(([k])=>k);
+  const detData=detSorted.map(([,v])=>v);
+  const detColors=['#00B0F0','#34D399','#FF44B0','#FFA700','#8B6FE8','#64B4F5','#FB923C','#F472B6','#38BDF8','#A78BFA'];
+
   if(charts.detalle)charts.detalle.destroy();
   charts.detalle=new Chart(document.getElementById('detalleChart'),{
     type:'bar',
-    data:{labels:detalleLabels,datasets:[{data:detalleData,backgroundColor:detalleColors.map(c=>c+'cc'),borderColor:detalleColors,borderWidth:1,borderRadius:4}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtN(c.raw)+' svc'}}},
-      scales:{x:{ticks:{color:'rgba(155,188,216,0.7)',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}},
-              y:{ticks:{color:'#fff',font:{size:10}},grid:{display:false}}}}
+    data:{labels:detLabels,datasets:[{
+      data:detData,
+      backgroundColor:detColors.map((c,i)=>i<detData.length?c+'cc':'transparent'),
+      borderColor:detColors,borderWidth:1,borderRadius:4,
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>fmtN(c.raw)+' svc'}},
+        datalabels:{
+          display:true,anchor:'end',align:'top',
+          color:'#fff',font:{size:9,weight:'700'},
+          formatter:v=>fmtN(v),
+        }
+      },
+      scales:{
+        x:{ticks:{color:'rgba(155,188,216,0.8)',font:{size:8},maxRotation:30},grid:{display:false}},
+        y:{ticks:{color:'rgba(155,188,216,0.7)',font:{size:9},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},grid:{color:'rgba(255,255,255,0.05)'},
+          grace:'15%'}
+      }
+    }
   });
 
   // Tendencia
@@ -777,6 +806,7 @@ function renderTrend(tercEntries,factA,factCT,svcA,svcCT){
           labels:{color:'rgba(255,255,255,0.7)',font:{size:9},boxWidth:10,padding:8,
             filter:item=>item.datasetIndex<datasets.length-1}
         },
+        datalabels:{display:false},
         tooltip:{
           callbacks:{
             title:ctx=>ctx[0].label,
@@ -828,7 +858,7 @@ function renderDonut(canvasId,totalId,legendId,labels,data,colors){
     type:'doughnut',
     data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0,hoverOffset:4}]},
     options:{responsive:true,maintainAspectRatio:true,cutout:'72%',
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){var pct=total>0?((c.raw/total)*100).toFixed(1):'0';return c.label+': '+fmtN(c.raw)+' ('+pct+'%)';}}}}
+      plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:function(c){var pct=total>0?((c.raw/total)*100).toFixed(1):'0';return c.label+': '+fmtN(c.raw)+' ('+pct+'%)';}}}}
     }
   });
 }
@@ -839,7 +869,7 @@ function renderHBar(canvasId,labels,data,colors,prefix){
     type:'bar',
     data:{labels,datasets:[{data,backgroundColor:colors.map(c=>c+'cc'),borderColor:colors,borderWidth:1,borderRadius:4}]},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>prefix==='$'?fmt$(c.raw):fmtN(c.raw)+' svc'}}},
+      plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:c=>prefix==='$'?fmt$(c.raw):fmtN(c.raw)+' svc'}}},
       scales:{x:{ticks:{color:'rgba(155,188,216,0.7)',font:{size:9},callback:v=>prefix==='$'?(v>=1000?(v/1000).toFixed(0)+'k':v):v},grid:{color:'rgba(255,255,255,0.05)'}},
               y:{ticks:{color:'#fff',font:{size:9}},grid:{display:false}}}}
   });
