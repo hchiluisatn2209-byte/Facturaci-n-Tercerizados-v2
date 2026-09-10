@@ -228,7 +228,7 @@ footer{text-align:center;padding:16px 36px;border-top:1px solid var(--border);fo
   <div class="section-title" id="trendTitle">Tendencia de Facturación</div>
   <div class="card" style="margin-bottom:22px">
     <div class="card-title"><span class="dot"></span>Facturación Mensual</div>
-    <div style="position:relative;height:220px"><canvas id="trendChart"></canvas></div>
+    <div style="position:relative;height:320px"><canvas id="trendChart"></canvas></div>
     <div class="trend-meta">
       <div class="tm"><div class="tm-l">Máximo</div><div class="tm-v" style="color:var(--turquesa)" id="metaMax">—</div></div>
       <div class="tm"><div class="tm-l" id="metaUltLabel">Último mes</div><div class="tm-v" style="color:var(--magenta)" id="metaUlt">—</div></div>
@@ -707,36 +707,36 @@ function renderTrend(tercEntries,factA,factCT,svcA,svcCT){
   const labels=keys.map(keyToLabel);
   const label=keyToLabel(activeMes);
 
-  // Total por mes
+  // Tercerizadoras con datos
+  const allTercsList=[...allTercs].filter(t=>keys.some(k=>allData[k]?.tercs[t]));
+  const tercsFilt=activeTerc.has('ALL')?allTercsList:[...activeTerc].filter(t=>allTercsList.includes(t));
+
+  // Dataset stacked bars por tercerizadora
+  const datasets=tercsFilt.map((t,i)=>({
+    type:'bar',label:t,
+    data:keys.map(k=>allData[k]?.tercs[t]?((activeTerc.has('ALL')||activeTerc.has(t))?allData[k].tercs[t].fact:0):0),
+    backgroundColor:getTercColor(t,i)+'cc',
+    borderColor:getTercColor(t,i),
+    borderWidth:0,stack:'fact',order:2,
+  }));
+
+  // Línea de total
   const totals=keys.map(k=>{
     const d=allData[k];if(!d)return 0;
     return Object.entries(d.tercs)
       .filter(([t])=>activeTerc.has('ALL')||activeTerc.has(t))
       .reduce((s,[,v])=>s+v.fact,0);
   });
+  datasets.push({
+    type:'line',label:'Total',data:totals,
+    borderColor:'#FF44B0',backgroundColor:'transparent',
+    borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#FF44B0',
+    tension:0.3,fill:false,stack:undefined,order:1,
+    datalabels:{display:false},
+  });
 
-  // Dataset por tercerizadora (solo si filtra una)
-  const datasets=[];
-  if(!activeTerc.has('ALL')&&activeTerc.size<=5){
-    [...activeTerc].forEach((t,i)=>{
-      datasets.push({
-        label:t,
-        data:keys.map(k=>allData[k]?.tercs[t]?.fact||0),
-        borderColor:getTercColor(t,i),backgroundColor:getTercColor(t,i)+'22',
-        borderWidth:2,pointRadius:2,tension:0.3,fill:false,
-      });
-    });
-  } else {
-    datasets.push({
-      label:'Total',data:totals,
-      borderColor:'#00B0F0',backgroundColor:'rgba(0,176,240,0.08)',
-      borderWidth:2.5,pointRadius:3,tension:0.3,fill:true,
-    });
-  }
-
-  // Trend title
-  const firstLabel=labels[0]||'';
-  document.getElementById('trendTitle').textContent=`Tendencia de Facturación · ${firstLabel} a ${label}`;
+  // Título
+  document.getElementById('trendTitle').textContent=`Tendencia de Facturación · ${labels[0]||''} a ${label}`;
 
   // Meta
   const nonZero=totals.filter(v=>v>0);
@@ -766,14 +766,46 @@ function renderTrend(tercEntries,factA,factCT,svcA,svcCT){
 
   if(charts.trend)charts.trend.destroy();
   charts.trend=new Chart(document.getElementById('trendChart'),{
-    type:'line',data:{labels,datasets},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:!activeTerc.has('ALL'),labels:{color:'rgba(255,255,255,0.7)',font:{size:10},boxWidth:12,padding:10}},
-        tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt$(c.raw)}}},
+    data:{labels,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{
+          display:true,
+          position:'top',
+          labels:{color:'rgba(255,255,255,0.7)',font:{size:9},boxWidth:10,padding:8,
+            filter:item=>item.datasetIndex<datasets.length-1}
+        },
+        tooltip:{
+          callbacks:{
+            title:ctx=>ctx[0].label,
+            label:ctx=>{
+              if(ctx.dataset.type==='line')return'Total: '+fmt$(ctx.raw);
+              return ctx.dataset.label+': '+fmt$(ctx.raw);
+            },
+            afterBody:ctx=>{
+              const tot=ctx.find(c=>c.dataset.type==='line');
+              const svc=allData[SHEET_NAMES.find(s=>keyToLabel(s.key)===ctx[0].label)?.key]?.totSvc||0;
+              return tot?['','Servicios: '+fmtN(svc)]:[];
+            }
+          }
+        }
+      },
       scales:{
-        x:{ticks:{color:'rgba(155,188,216,0.7)',font:{size:9},maxRotation:45},grid:{color:'rgba(255,255,255,0.05)'}},
-        y:{ticks:{color:'rgba(155,188,216,0.7)',font:{size:9},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},grid:{color:'rgba(255,255,255,0.05)'}}
-      }}
+        x:{
+          stacked:true,
+          ticks:{color:'rgba(155,188,216,0.7)',font:{size:9},maxRotation:45},
+          grid:{color:'rgba(255,255,255,0.04)'}
+        },
+        y:{
+          stacked:true,
+          ticks:{color:'rgba(155,188,216,0.7)',font:{size:9},
+            callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},
+          grid:{color:'rgba(255,255,255,0.05)'}
+        }
+      }
+    }
   });
 }
 
