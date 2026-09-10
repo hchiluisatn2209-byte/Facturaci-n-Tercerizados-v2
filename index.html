@@ -212,6 +212,13 @@ main{padding:24px 36px}
     </div>
   </div>
 
+  <!-- Validación Informe 2024 -->
+  <div class="section-title" id="validTitle" style="display:none">Validación vs Informe Fact General 2024</div>
+  <div class="card" id="validCard" style="margin-bottom:20px;display:none">
+    <div class="card-title"><span class="dot" style="background:var(--amarillo)"></span>Comparación con Informe 2024</div>
+    <div id="validList" style="display:flex;flex-direction:column;gap:6px;font-size:11px"></div>
+  </div>
+
   <!-- Análisis detalle -->
   <div class="section-title">Análisis por Tercerizadora y Clientes</div>
   <div class="grid-3">
@@ -236,28 +243,33 @@ main{padding:24px 36px}
 // ═══════════════════════════════════════════════════════
 const SHEET_ID = '1W_48F6gUnrTmuUvqXKkHaTxk559yfbZVeBxpR7tAT78';
 
-// Lista de hojas mensuales — agregar una línea por cada nuevo mes
-// key: 'YYYY-MM', name: nombre exacto de la pestaña, gid: GID numérico
+// Lista completa de hojas mensuales — agregar una línea por cada nuevo mes
 const SHEET_NAMES = [
-  {key:'2025-04', name:'PROYECCION -ABRIL 2025',       gid:'573091368'},
-  {key:'2025-05', name:'PROYECCION -MAYO 2025',        gid:'1632201815'},
-  {key:'2025-06', name:'PROYECCION -JUNIO 2025',       gid:'334926907'},
-  {key:'2025-07', name:'PROYECCION -JULIO 2025',       gid:'644495086'},
-  {key:'2025-08', name:'PROYECCION -AGOSTO 2025',      gid:'1865458072'},
-  {key:'2025-09', name:'PROYECCION -SEPTIEMBRE 2025',  gid:'1090016555'},
-  {key:'2025-10', name:'PROYECCION -OCTUBRE 2025',     gid:'1680109705'},
-  {key:'2025-11', name:'PROYECCION -NOVIEMBRE 2025',   gid:'652574815'},
-  {key:'2025-12', name:'PROYECCION -DICIEMBRE 2025',   gid:'1034856630'},
-  {key:'2026-01', name:'PROYECCION -ENERO 2026',       gid:'1274860642'},
-  {key:'2026-02', name:'PROYECCION -FEBRERO 2026',     gid:'493659489'},
-  {key:'2026-03', name:'PROYECCION -MARZO 2026',       gid:'1291578538'},
-  {key:'2026-04', name:'PROYECCIÓN - ABRIL 2026 ok',   gid:'754061266'},
-  {key:'2026-05', name:'PROYECCION - MAYO 2026 ok',    gid:'992320056'},
-  {key:'2026-06', name:'PROYECCION - JUNIO 2026',      gid:'1276205949'},
-  {key:'2026-07', name:'PROYECCION - JUlIO 2026',      gid:'678488890'},
-  {key:'2026-08', name:'PROYECCION - AGOSTO 2026',     gid:'1773158770'},
-  {key:'2026-09', name:'PROYECCION - SEPTIEMBRE 2026', gid:'113875412'},
+  {key:'2025-01', name:'PROYECCION - ENERO 2025',       gid:'1363403654'},
+  {key:'2025-02', name:'PROYECCION - FEBRERO 2025',     gid:'1736862684'},
+  {key:'2025-03', name:'PROYECCION - MARZO 2025',       gid:'1729379486'},
+  {key:'2025-04', name:'PROYECCION -ABRIL 2025',        gid:'573091368'},
+  {key:'2025-05', name:'PROYECCION -MAYO 2025',         gid:'1632201815'},
+  {key:'2025-06', name:'PROYECCION -JUNIO 2025',        gid:'334926907'},
+  {key:'2025-07', name:'PROYECCION -JULIO 2025',        gid:'644495086'},
+  {key:'2025-08', name:'PROYECCION -AGOSTO 2025',       gid:'1865458072'},
+  {key:'2025-09', name:'PROYECCION -SEPTIEMBRE 2025',   gid:'1090016555'},
+  {key:'2025-10', name:'PROYECCION -OCTUBRE 2025',      gid:'1680109705'},
+  {key:'2025-11', name:'PROYECCION -NOVIEMBRE 2025',    gid:'652574815'},
+  {key:'2025-12', name:'PROYECCION -DICIEMBRE 2025',    gid:'1034856630'},
+  {key:'2026-01', name:'PROYECCION -ENERO 2026',        gid:'1274860642'},
+  {key:'2026-02', name:'PROYECCION -FEBRERO 2026',      gid:'493659489'},
+  {key:'2026-03', name:'PROYECCION -MARZO 2026',        gid:'1291578538'},
+  {key:'2026-04', name:'PROYECCIÓN - ABRIL 2026 ok',    gid:'754061266'},
+  {key:'2026-05', name:'PROYECCION - MAYO 2026 ok',     gid:'992320056'},
+  {key:'2026-06', name:'PROYECCION - JUNIO 2026',       gid:'1276205949'},
+  {key:'2026-07', name:'PROYECCION - JUlIO 2026',       gid:'678488890'},
+  {key:'2026-08', name:'PROYECCION - AGOSTO 2026',      gid:'1773158770'},
+  {key:'2026-09', name:'PROYECCION - SEPTIEMBRE 2026',  gid:'113875412'},
 ];
+
+// Hoja de informe 2024 — usada para validación de totales históricos
+const INFORME_2024_GID = '2088197525';
 
 // Colores por tercerizadora (se asignan automáticamente si no está aquí)
 const TERC_COLORS_MAP = {
@@ -392,6 +404,43 @@ function getTercColor(t,idx){
 }
 
 // ═══════════════════════════════════════════════════════
+// INFORME 2024 — validación de totales históricos
+// ═══════════════════════════════════════════════════════
+let informe2024 = {}; // {mes: {fact, svc}}
+
+async function loadInforme2024(){
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${INFORME_2024_GID}`;
+  try{
+    const r=await fetch(url);
+    if(!r.ok) return;
+    const text=await r.text();
+    const rows=parseCSV(text);
+    if(rows.length<2) return;
+    const headers=rows[0].map(normHeader);
+
+    // Buscar columnas relevantes: MES, FACTURACIÓN/TOTAL, etc.
+    const mesCol=headers.findIndex(h=>h.includes('MES')||h.includes('PERIODO')||h.includes('FECHA'));
+    const factCol=headers.findIndex(h=>h.includes('FACTUR')&&!h.includes('ID'));
+
+    console.log('[GTN Informe 2024] Headers:', headers.slice(0,10));
+
+    if(mesCol<0||factCol<0){
+      console.warn('[GTN Informe 2024] No se encontraron columnas MES/FACTURACIÓN');
+      return;
+    }
+
+    rows.slice(1).forEach(row=>{
+      const mes=(row[mesCol]||'').trim();
+      const fact=cleanNum(row[factCol]);
+      if(mes&&fact>0) informe2024[mes]=fact;
+    });
+    console.log('[GTN Informe 2024] Datos cargados:', Object.keys(informe2024).length, 'registros');
+  }catch(e){
+    console.warn('[GTN Informe 2024] Error:', e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // CARGA DE DATOS
 // ═══════════════════════════════════════════════════════
 async function fetchSheet(sheetObj){
@@ -484,6 +533,9 @@ function processCSV(text, key){
 
 async function loadAll(){
   setBadge('loading','Cargando datos...');
+
+  // Cargar informe 2024 en paralelo con las hojas mensuales
+  loadInforme2024();
   let loaded=0;
 
   // Cargar en paralelo por lotes de 4
@@ -674,6 +726,45 @@ function render(){
 
   // ── Tendencia ──
   renderTrend();
+
+  // ── Validación Informe 2024 ──
+  renderValidacion();
+}
+
+// ═══════════════════════════════════════════════════════
+// VALIDACIÓN INFORME 2024
+// ═══════════════════════════════════════════════════════
+function renderValidacion(){
+  const keys=Object.keys(informe2024);
+  if(keys.length===0){
+    document.getElementById('validCard').style.display='none';
+    document.getElementById('validTitle').style.display='none';
+    return;
+  }
+
+  document.getElementById('validCard').style.display='block';
+  document.getElementById('validTitle').style.display='block';
+
+  const rows=keys.map(mes=>{
+    const inf=informe2024[mes]||0;
+    // Buscar el mes correspondiente en allData
+    const matchKey=Object.keys(allData).find(k=>keyToLabel(k).toLowerCase()===mes.toLowerCase()||k.includes(mes));
+    const calc=matchKey?allData[matchKey].totFact:null;
+    const diff=calc!=null?calc-inf:null;
+    const pct=calc!=null&&inf>0?((diff/inf)*100).toFixed(1):null;
+    const ok=diff!=null&&Math.abs(diff)<1;
+
+    return `
+    <div style="display:grid;grid-template-columns:120px 1fr 1fr 1fr 60px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span style="font-weight:600;color:#fff">${mes}</span>
+      <span style="color:var(--muted)">Informe: <b style="color:#fff">${fmt$(inf)}</b></span>
+      <span style="color:var(--muted)">Calculado: <b style="color:${calc!=null?'#fff':'var(--muted)'}">${calc!=null?fmt$(calc):'—'}</b></span>
+      <span style="color:var(--muted)">Diferencia: <b style="color:${diff!=null?(ok?'var(--verde)':(diff>0?'var(--naranja2)':'#ff6b6b')):'var(--muted)'}">${diff!=null?(diff>=0?'+':'')+fmt$(diff):'—'}</b></span>
+      <span style="text-align:center">${ok?'✅':(diff!=null?'⚠️':'—')}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('validList').innerHTML=rows||'<div style="color:var(--muted);padding:10px">No hay datos comparables</div>';
 }
 
 // ═══════════════════════════════════════════════════════
