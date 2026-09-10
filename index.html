@@ -495,12 +495,18 @@ function processCSV(text, key){
 
   const tercCol=col('TERCERIZADORA');
   const idCol=headers.findIndex(h=>h.includes('ID')&&h.includes('FACTUR')&&!h.includes('NUEVO'));
-  const factCol=col('FACTURACI');
-  const estadoCol=col('ESTADO');
+  
+  // Buscar FACTURACIÓN exacta — evitar "MES FACTURACION", "VALOR CUADRO FACTURACION", "ID FACTURACION"
+  const factCol=headers.findIndex(h=>
+    (h==='FACTURACION'||h==='FACTURACIÓN') ||
+    (h.includes('FACTURACI')&&!h.includes('ID')&&!h.includes('MES')&&!h.includes('VALOR')&&!h.includes('CUADRO')&&!h.includes('NUEVO'))
+  );
+  
+  const estadoCol=headers.findIndex(h=>h==='ESTADO'||(h.includes('ESTADO')&&!h.includes('CIVIL')));
   const tipoTercCol=col('TIPO_TERCER');
   const enlaceCol=col('TIPO ENLACE');
   const cliTipoCol=col('TIPO CLIENTE');
-  const clienteCol=col('CLIENTE');
+  const clienteCol=headers.findIndex(h=>h==='CLIENTE'||(h.includes('CLIENTE')&&!h.includes('TIPO')&&!h.includes('LOCAL')));
 
   if(tercCol<0||factCol<0||estadoCol<0) return null;
 
