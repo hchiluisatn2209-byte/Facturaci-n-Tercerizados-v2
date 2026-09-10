@@ -457,21 +457,19 @@ function processCSV(text){
     const f=cleanNum(row[factCol]);
     if(!t||!e||e==='CANCELADO')return;
 
-    if(!tercs[t])tercs[t]={factA:0,factCT:0,svcA:new Set(),svcCT:new Set(),
+    if(!tercs[t])tercs[t]={factA:0,factCT:0,svcA:0,svcCT:0,
       enlace:{PRINCIPAL:0,BACKUP:0,INFRAESTRUCTURA:0},
       tipo:{ULTIMA_MILLA:0,FIBRA_OSCURA:0,ULTIMA_MILLA_MIXTA:0,CAPACIDAD:0,OTROS:0},
       cliTipo:{CORPORATIVO:0,BANCA:0},clientes:{},detalle:{}};
 
-    const id=idCol>=0?(row[idCol]||'').trim():'';
     const enl=normEnlace(enlaceCol>=0?row[enlaceCol]:'');
     const tipo=normTipo(tipoTercCol>=0?row[tipoTercCol]:'');
     const cTipo=normCliTipo(cliTipoCol>=0?row[cliTipoCol]:'');
     const cli=clienteCol>=0?(row[clienteCol]||'').trim():'';
-    const det=idCol>=0?(row[idCol-2]||'').trim():''; // DETALLE SERVICIO está 2 antes de ID aprox
 
     if(e==='ACTIVO'){
       tercs[t].factA+=f;
-      if(id)tercs[t].svcA.add(id);else tercs[t].svcA.add('_'+Math.random());
+      tercs[t].svcA++;
       tercs[t].enlace[enl]++;
       tercs[t].tipo[tipo]++;
       tercs[t].cliTipo[cTipo]++;
@@ -480,7 +478,7 @@ function processCSV(text){
       if(cli){tercs[t].clientes[cli]=(tercs[t].clientes[cli]||0)+1;clientesMap[cli]=(clientesMap[cli]||0)+1;}
     }else if(e==='CT'){
       tercs[t].factCT+=f;
-      if(id)tercs[t].svcCT.add(id);else tercs[t].svcCT.add('_'+Math.random());
+      tercs[t].svcCT++;
     }
   });
 
@@ -488,7 +486,9 @@ function processCSV(text){
   const detalleMap={};
   Object.values(tercs).forEach(d=>{
     d.fact=d.factA+d.factCT;
-    d.svcACount=d.svcA.size;d.svcCTCount=d.svcCT.size;d.svcCount=d.svcACount+d.svcCTCount;
+    d.svcACount=d.svcA;
+    d.svcCTCount=d.svcCT;
+    d.svcCount=d.svcA+d.svcCT;
     totFact+=d.fact;totSvc+=d.svcCount;
     Object.entries(d.detalle||{}).forEach(([k,v])=>detalleMap[k]=(detalleMap[k]||0)+v);
   });
