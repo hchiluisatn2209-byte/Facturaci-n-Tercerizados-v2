@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Ejecutivo – Tercerizados | GTN Proyectos e Implementación</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap');
+:root{
+  --navy:#1B3A70;--navy-dark:#0e2248;--navy-mid:#1a3f7a;
+  --turquesa:#00B0F0;--turquesa2:#00B5CB;--magenta:#FF44B0;
+  --naranja:#FF6F42;--morado:#8B6FE8;--amarillo:#FFA700;
+  --azul-c:#6EBEEB;--azul-c2:#64B4F5;--verde:#34D399;--naranja2:#FF9A44;
+  --muted:#9BBCD8;--card-bg:#1a3f7a;--border:rgba(0,176,240,0.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:linear-gradient(160deg,#0e2248 0%,#122755 45%,#1B3A70 100%);background-attachment:fixed;color:#fff;min-height:100vh;overflow-x:hidden}
+header{background:linear-gradient(90deg,#0a1b3d,#1B3A70 70%,#1f4485);border-bottom:3px solid var(--turquesa);padding:16px 36px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 4px 28px rgba(0,0,0,.55)}
+.header-left{display:flex;align-items:center;gap:16px}
+.logo-badge{width:48px;height:48px;background:linear-gradient(135deg,var(--turquesa),#5D34B0);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:17px;color:#fff;letter-spacing:1px;box-shadow:0 4px 16px rgba(0,176,240,.45)}
+.header-titles h1{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:21px;letter-spacing:2px;text-transform:uppercase;line-height:1}
+.header-titles p{font-size:10px;color:var(--turquesa);letter-spacing:2.5px;text-transform:uppercase;margin-top:4px}
+.header-right{text-align:right}
+.corte-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.corte-date{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:22px;color:var(--amarillo)}
+.filter-bar{background:rgba(11,29,62,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);position:sticky;top:71px;z-index:190;padding:8px 36px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.filter-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--turquesa);font-weight:600;white-space:nowrap}
+select{background:rgba(0,176,240,0.08);border:1.5px solid rgba(0,176,240,0.4);color:#fff;border-radius:20px;padding:5px 14px;font-size:11px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;outline:none}
+select option{background:#0e2248}
+.loading-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:12px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;background:rgba(255,167,0,0.15);color:var(--amarillo);border:1px solid rgba(255,167,0,0.3);margin-left:auto}
+.loading-badge.ok{background:rgba(52,211,153,0.15);color:var(--verde);border-color:rgba(52,211,153,0.3)}
+main{padding:24px 36px}
+.section-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--turquesa);margin:0 0 12px;border-left:3px solid var(--turquesa);padding-left:10px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kpi-card{background:linear-gradient(135deg,rgba(26,63,122,0.9),rgba(11,29,62,0.95));border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-card.turq::before{background:linear-gradient(90deg,var(--turquesa),var(--turquesa2))}
+.kpi-card.mag::before{background:linear-gradient(90deg,var(--magenta),#c4007a)}
+.kpi-card.nar::before{background:linear-gradient(90deg,var(--naranja),var(--amarillo))}
+.kpi-card.mor::before{background:linear-gradient(90deg,var(--morado),#6040c0)}
+.kpi-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
+.kpi-val{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:34px;line-height:1;color:#fff;margin-bottom:6px}
+.kpi-sub{font-size:10px;color:rgba(155,188,216,0.8);margin-bottom:4px}
+.kpi-sub b{color:var(--verde)}
+.kpi-sub b.red{color:#ff6b6b}
+.kpi-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-top:4px}
+.kpi-badge.up{background:rgba(52,211,153,0.15);color:var(--verde)}
+.kpi-badge.down{background:rgba(255,107,107,0.15);color:#ff6b6b}
+.kpi-icon{position:absolute;right:16px;bottom:14px;opacity:0.06;font-size:52px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.card{background:linear-gradient(135deg,rgba(26,63,122,0.9),rgba(11,29,62,0.95));border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--turquesa);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--turquesa);flex-shrink:0}
+.donut-card-sm{background:linear-gradient(135deg,rgba(26,63,122,0.9),rgba(11,29,62,0.95));border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+.donut-row-layout{display:flex;align-items:center;gap:14px}
+.donut-wrap-sm{position:relative;width:120px;height:120px;flex-shrink:0}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+.donut-center .big{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;line-height:1}
+.donut-center .small{font-size:8px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.legend-list{flex:1;display:flex;flex-direction:column;gap:5px}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:10px}
+.legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.legend-label{flex:1;color:var(--muted)}
+.legend-val{font-weight:700;color:#fff;font-size:10px}
+.legend-pct{color:var(--muted);font-size:9px;min-width:32px;text-align:right}
+.bar-list{display:flex;flex-direction:column;gap:8px}
+.bar-item{display:flex;flex-direction:column;gap:3px}
+.bar-header{display:flex;justify-content:space-between;align-items:center;font-size:10px}
+.bar-name{font-weight:600;color:#fff}
+.bar-vals{color:var(--muted);font-size:9px}
+.bar-track{height:5px;border-radius:3px;background:rgba(255,255,255,0.07);overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.client-list{display:flex;flex-direction:column;gap:6px}
+.client-item{display:flex;align-items:center;gap:8px;font-size:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.client-rank{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--turquesa);min-width:18px}
+.client-name{flex:1;color:#fff}
+.client-svc{color:var(--muted)}
+.trend-meta{display:flex;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap}
+.tm{display:flex;flex-direction:column;gap:2px}
+.tm-l{font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.tm-v{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,167,0,0.3);border-top-color:var(--amarillo);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-badge">GTN</div>
+    <div class="header-titles">
+      <h1>Dashboard Ejecutivo · Tercerizados</h1>
+      <p>Proyectos e Implementación · Facturación</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="corte-label">Corte</div>
+    <div class="corte-date" id="corteDate">—</div>
+  </div>
+</header>
+
+<div class="filter-bar">
+  <span class="filter-label">Corte</span>
+  <select id="mesSelect"></select>
+  <span class="filter-label" style="margin-left:8px">Tercerizadora</span>
+  <select id="tercSelect"><option value="ALL">Todas</option></select>
+  <span class="filter-label" style="margin-left:8px">Tipo Cliente</span>
+  <select id="cliTipoSelect">
+    <option value="ALL">Todos</option>
+    <option value="CORPORATIVO">Corporativo</option>
+    <option value="BANCA">Banca</option>
+  </select>
+  <div class="loading-badge" id="loadBadge"><span class="spinner"></span> Cargando...</div>
+</div>
+
+<main>
+  <!-- KPIs -->
+  <div class="section-title">Indicadores Clave</div>
+  <div class="kpi-grid">
+    <div class="kpi-card turq">
+      <div class="kpi-label">Facturación · Activo + Cancelado en Telcos</div>
+      <div class="kpi-val" id="kpiFact">—</div>
+      <div class="kpi-sub"><b id="kpiActivo">—</b> Activo</div>
+      <div class="kpi-sub"><b id="kpiCT">—</b> Cancelado en Telcos</div>
+      <div id="kpiVar" class="kpi-badge">—</div>
+      <div class="kpi-icon">$</div>
+    </div>
+    <div class="kpi-card mag">
+      <div class="kpi-label">Servicios del Corte</div>
+      <div class="kpi-val" id="kpiSvc">—</div>
+      <div class="kpi-sub">Activos + Cancelado en Telcos · <span id="kpiMesNombre">—</span></div>
+      <div class="kpi-icon">⚡</div>
+    </div>
+    <div class="kpi-card nar">
+      <div class="kpi-label">Clientes del Corte</div>
+      <div class="kpi-val" id="kpiCli" style="color:var(--amarillo)">—</div>
+      <div class="kpi-sub">Clientes activos · <span id="kpiMesNombre2">—</span></div>
+      <div class="kpi-icon">👥</div>
+    </div>
+    <div class="kpi-card mor">
+      <div class="kpi-label">Tercerizadoras Activas</div>
+      <div class="kpi-val" id="kpiTerc">—</div>
+      <div class="kpi-sub">Con facturación <span id="kpiMesNombre3">—</span></div>
+      <div class="kpi-icon">🔗</div>
+    </div>
+  </div>
+
+  <!-- Donuts -->
+  <div class="section-title">Análisis por Tipo de Enlace y Cliente</div>
+  <div class="grid-3" style="margin-bottom:20px">
+    <div class="donut-card-sm">
+      <div class="card-title"><span class="dot"></span>Tipo de Servicio</div>
+      <div class="donut-row-layout">
+        <div class="donut-wrap-sm">
+          <canvas id="tipoChart"></canvas>
+          <div class="donut-center"><div class="big" id="tipoTotal">—</div><div class="small">Servicios</div></div>
+        </div>
+        <div class="legend-list" id="tipoLegend"></div>
+      </div>
+    </div>
+    <div class="donut-card-sm">
+      <div class="card-title"><span class="dot"></span>Tipo de Enlace</div>
+      <div class="donut-row-layout">
+        <div class="donut-wrap-sm">
+          <canvas id="enlaceChart"></canvas>
+          <div class="donut-center"><div class="big" id="enlaceTotal">—</div><div class="small">Servicios</div></div>
+        </div>
+        <div class="legend-list" id="enlaceLegend"></div>
+      </div>
+    </div>
+    <div class="donut-card-sm">
+      <div class="card-title"><span class="dot"></span>Tipo de Cliente</div>
+      <div class="donut-row-layout">
+        <div class="donut-wrap-sm">
+          <canvas id="clienteChart"></canvas>
+          <div class="donut-center"><div class="big" id="clienteTotal">—</div><div class="small">Servicios</div></div>
+        </div>
+        <div class="legend-list" id="clienteLegend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barras por tercerizadora -->
+  <div class="section-title">Facturación por Tercerizadora</div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title"><span class="dot"></span>Facturación por Tercerizadora ($)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div style="font-size:9px;color:var(--turquesa);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Facturación ($)</div>
+        <canvas id="hbarChart" height="80"></canvas>
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--azul-c2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">N° Servicios</div>
+        <canvas id="svcChart" height="80"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tendencia -->
+  <div class="section-title" id="trendTitle">Tendencia de Facturación</div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title"><span class="dot"></span>Facturación Mensual</div>
+    <canvas id="trendChart" height="70"></canvas>
+    <div class="trend-meta">
+      <div class="tm"><div class="tm-l">Máximo</div><div class="tm-v" style="color:var(--turquesa)" id="metaMax">—</div></div>
+      <div class="tm"><div class="tm-l">Promedio</div><div class="tm-v" style="color:var(--amarillo)" id="metaProm">—</div></div>
+      <div class="tm"><div class="tm-l">Último mes</div><div class="tm-v" style="color:var(--magenta)" id="metaUlt">—</div></div>
+      <div class="tm"><div class="tm-l">Variación</div><div class="tm-v" id="metaDiff">—</div></div>
+    </div>
+  </div>
+
+  <!-- Análisis detalle -->
+  <div class="section-title">Análisis por Tercerizadora y Clientes</div>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Facturación & Servicios por Tercerizadora</div>
+      <div class="bar-list" id="barList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Top Clientes por Servicios</div>
+      <div class="client-list" id="clientList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Resumen del Corte</div>
+      <div id="resumenList" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIGURACIÓN — solo modificar esta sección
+// ═══════════════════════════════════════════════════════
+const SHEET_ID = '1W_48F6gUnrTmuUvqXKkHaTxk559yfbZVeBxpR7tAT78';
+
+// Lista de hojas mensuales — agregar una línea por cada nuevo mes
+// key: 'YYYY-MM', name: nombre exacto de la pestaña, gid: GID numérico
+const SHEET_NAMES = [
+  {key:'2025-04', name:'PROYECCION -ABRIL 2025',       gid:'573091368'},
+  {key:'2025-05', name:'PROYECCION -MAYO 2025',        gid:'1632201815'},
+  {key:'2025-06', name:'PROYECCION -JUNIO 2025',       gid:'334926907'},
+  {key:'2025-07', name:'PROYECCION -JULIO 2025',       gid:'644495086'},
+  {key:'2025-08', name:'PROYECCION -AGOSTO 2025',      gid:'1865458072'},
+  {key:'2025-09', name:'PROYECCION -SEPTIEMBRE 2025',  gid:'1090016555'},
+  {key:'2025-10', name:'PROYECCION -OCTUBRE 2025',     gid:'1680109705'},
+  {key:'2025-11', name:'PROYECCION -NOVIEMBRE 2025',   gid:'652574815'},
+  {key:'2025-12', name:'PROYECCION -DICIEMBRE 2025',   gid:'1034856630'},
+  {key:'2026-01', name:'PROYECCION -ENERO 2026',       gid:'1274860642'},
+  {key:'2026-02', name:'PROYECCION -FEBRERO 2026',     gid:'493659489'},
+  {key:'2026-03', name:'PROYECCION -MARZO 2026',       gid:'1291578538'},
+  {key:'2026-04', name:'PROYECCIÓN - ABRIL 2026 ok',   gid:'754061266'},
+  {key:'2026-05', name:'PROYECCION - MAYO 2026 ok',    gid:'992320056'},
+  {key:'2026-06', name:'PROYECCION - JUNIO 2026',      gid:'1276205949'},
+  {key:'2026-07', name:'PROYECCION - JUlIO 2026',      gid:'678488890'},
+  {key:'2026-08', name:'PROYECCION - AGOSTO 2026',     gid:'1773158770'},
+  {key:'2026-09', name:'PROYECCION - SEPTIEMBRE 2026', gid:'113875412'},
+];
+
+// Colores por tercerizadora (se asignan automáticamente si no está aquí)
+const TERC_COLORS_MAP = {
+  TELEFONICA:'#00B0F0', CNT:'#FF44B0', CIRION:'#FF6F42',
+  PUNTONET:'#8B6FE8', CLARO:'#FFA700', C4:'#64B4F5',
+  KONNET:'#6EBEEB', SPEEDCAST:'#38BDF8', IFOTONCORP:'#C084FC',
+  ETAPA:'#86EFAC', TEUNO:'#FCA5A5', SYSTRAY:'#34D399',
+  PIEDRAHUASI:'#FB923C',
+};
+const AUTO_COLORS = ['#60A5FA','#F472B6','#34D399','#FBBF24','#A78BFA','#FB923C','#4ADE80','#F87171'];
+
+// ═══════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════
+let allData = {};       // {key: {tercs:{TERC:{factA,factCT,svcA,svcCT,clientes:[],enlace:{},tipo:{},tipoCliente:{}}}, totFact, totSvc, totCli}}
+let allTercs = new Set();
+let activeMes = null;
+let filterTerc = 'ALL';
+let filterCliTipo = 'ALL';
+let charts = {};
+
+// ═══════════════════════════════════════════════════════
+// UTILIDADES
+// ═══════════════════════════════════════════════════════
+function fmt$(n){return '$'+n.toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmtN(n){return n.toLocaleString('es-EC')}
+function keyToLabel(k){
+  const [y,m]=k.split('-');
+  const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  return meses[parseInt(m)-1]+'-'+y.slice(2);
+}
+
+function parseCSV(text){
+  const rows=[];
+  const lines=text.split('\n');
+  for(const line of lines){
+    const r=[];let c='',q=false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"'){q=!q;}
+      else if(line[i]===','&&!q){r.push(c);c='';}
+      else c+=line[i];
+    }
+    r.push(c);
+    rows.push(r);
+  }
+  return rows;
+}
+
+function normHeader(h){
+  return String(h||'').replace(/^["'\uFEFF\s]+|["'\s]+$/g,'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+}
+
+function cleanNum(s){
+  if(s==null||s==='') return 0;
+  let str=String(s).trim();
+  if(/^\$?\s*[-–—]$/.test(str)) return 0;
+  str=str.replace(/\$/g,'').replace(/\s+/g,'').replace(/[^0-9.,\-]/g,'');
+  if(!str||str==='-') return 0;
+  const hasDot=str.includes('.');
+  const hasComma=str.includes(',');
+  if(hasDot&&hasComma){
+    const lastDot=str.lastIndexOf('.');
+    const lastComma=str.lastIndexOf(',');
+    if(lastDot>lastComma){
+      str=str.replace(/,/g,'');
+    } else {
+      const afterDot=str.substring(lastDot+1,lastComma);
+      if(afterDot.length===3){str=str.replace(/\./g,'').replace(',','.');}
+      else{str=str.replace(/,/g,'');}
+    }
+  } else if(hasComma&&!hasDot){
+    const parts=str.split(',');
+    if(parts.length===2&&parts[1].length<=2) str=str.replace(',','.');
+    else str=str.replace(/,/g,'');
+  }
+  const n=parseFloat(str);
+  return isNaN(n)?0:n;
+}
+
+function normTerc(t){
+  if(!t) return null;
+  const tl=String(t).trim().toLowerCase();
+  const MAP={
+    'telefónica':'TELEFONICA','telefonica':'TELEFONICA',
+    'cnt':'CNT','cirion':'CIRION','puntonet':'PUNTONET',
+    'claro':'CLARO','c4':'C4','grupo concha':'C4',
+    'konnet':'KONNET','etapa':'ETAPA','ifotoncorp':'IFOTONCORP',
+    'teuno':'TEUNO','speedcast':'SPEEDCAST','starlink':'SPEEDCAST',
+    'systray':'SYSTRAY','piedrahuasi':'PIEDRAHUASI',
+  };
+  for(const [k,v] of Object.entries(MAP)) if(tl.includes(k)) return v;
+  return String(t).trim().toUpperCase()||null;
+}
+
+function normEstado(e){
+  if(!e) return null;
+  const eu=String(e).trim().toUpperCase();
+  if(eu.includes('CANCELADO EN TELCOS')) return 'CT';
+  if(eu.includes('CANCELADO')) return 'CANCELADO';
+  if(eu.includes('ACTIVO')) return 'ACTIVO';
+  return null;
+}
+
+function normTipo(t){
+  if(!t) return 'OTROS';
+  const tu=String(t).trim().toUpperCase();
+  if(tu.includes('FIBRA')) return 'FIBRA_OSCURA';
+  if(tu.includes('MIXTA')) return 'ULTIMA_MILLA_MIXTA';
+  if(tu.includes('CAPACIDAD')||tu.includes('STARLINK')) return 'CAPACIDAD';
+  if(tu.includes('LTIMA')||tu.includes('ULTIMA')||tu.includes('MILLA')) return 'ULTIMA_MILLA';
+  return 'OTROS';
+}
+
+function normEnlace(e){
+  if(!e) return 'PRINCIPAL';
+  const eu=String(e).trim().toUpperCase();
+  if(eu.includes('BACKUP')) return 'BACKUP';
+  if(eu.includes('INFRA')) return 'INFRAESTRUCTURA';
+  return 'PRINCIPAL';
+}
+
+function normCliTipo(c){
+  if(!c) return 'CORPORATIVO';
+  const cu=String(c).trim().toUpperCase();
+  if(cu.includes('BANCA')||cu.includes('BANCO')) return 'BANCA';
+  return 'CORPORATIVO';
+}
+
+function getTercColor(t,idx){
+  return TERC_COLORS_MAP[t]||AUTO_COLORS[idx%AUTO_COLORS.length];
+}
+
+// ═══════════════════════════════════════════════════════
+// CARGA DE DATOS
+// ═══════════════════════════════════════════════════════
+async function fetchSheet(sheetObj){
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${sheetObj.gid}`;
+  try{
+    const r=await fetch(url);
+    if(!r.ok) return null;
+    return await r.text();
+  }catch{return null;}
+}
+
+function processCSV(text, key){
+  if(!text) return null;
+  const rows=parseCSV(text);
+  if(rows.length<2) return null;
+
+  // Detectar headers
+  const headers=rows[0].map(normHeader);
+  const col=name=>headers.findIndex(h=>h.includes(name));
+
+  const tercCol=col('TERCERIZADORA');
+  const idCol=headers.findIndex(h=>h.includes('ID')&&h.includes('FACTUR')&&!h.includes('NUEVO'));
+  const factCol=col('FACTURACI');
+  const estadoCol=col('ESTADO');
+  const tipoTercCol=col('TIPO_TERCER');
+  const enlaceCol=col('TIPO ENLACE');
+  const cliTipoCol=col('TIPO CLIENTE');
+  const clienteCol=col('CLIENTE');
+
+  if(tercCol<0||factCol<0||estadoCol<0) return null;
+
+  const tercs={};
+  const clientesMap={};
+
+  rows.slice(1).forEach(row=>{
+    const t=normTerc(row[tercCol]);
+    const e=normEstado(row[estadoCol]);
+    const f=cleanNum(row[factCol]);
+    if(!t||!e) return;
+    if(e==='CANCELADO') return;
+
+    if(!tercs[t]) tercs[t]={factA:0,factCT:0,svcA:new Set(),svcCT:new Set(),
+      enlace:{PRINCIPAL:0,BACKUP:0,INFRAESTRUCTURA:0},
+      tipo:{ULTIMA_MILLA:0,FIBRA_OSCURA:0,ULTIMA_MILLA_MIXTA:0,CAPACIDAD:0,OTROS:0},
+      cliTipo:{CORPORATIVO:0,BANCA:0},clientes:{}};
+
+    const id=idCol>=0?(row[idCol]||'').trim():'';
+    const enl=normEnlace(row[enlaceCol]);
+    const tipo=normTipo(row[tipoTercCol]);
+    const cTipo=normCliTipo(row[cliTipoCol]);
+    const cli=(row[clienteCol]||'').trim();
+
+    if(e==='ACTIVO'){
+      tercs[t].factA+=f;
+      if(id) tercs[t].svcA.add(id); else tercs[t].svcA.add('_'+Math.random());
+      tercs[t].enlace[enl]=(tercs[t].enlace[enl]||0)+1;
+      tercs[t].tipo[tipo]=(tercs[t].tipo[tipo]||0)+1;
+      tercs[t].cliTipo[cTipo]=(tercs[t].cliTipo[cTipo]||0)+1;
+      if(cli){
+        tercs[t].clientes[cli]=(tercs[t].clientes[cli]||0)+1;
+        clientesMap[cli]=(clientesMap[cli]||0)+1;
+      }
+    } else if(e==='CT'){
+      tercs[t].factCT+=f;
+      if(id) tercs[t].svcCT.add(id); else tercs[t].svcCT.add('_'+Math.random());
+    }
+  });
+
+  // Calcular totales
+  let totFact=0,totSvc=0,totCli=0;
+  const tercList=Object.keys(tercs);
+  tercList.forEach(t=>{
+    const d=tercs[t];
+    d.fact=d.factA+d.factCT;
+    d.svcACount=d.svcA.size;
+    d.svcCTCount=d.svcCT.size;
+    d.svcCount=d.svcACount+d.svcCTCount;
+    totFact+=d.fact;
+    totSvc+=d.svcCount;
+  });
+
+  // Clientes únicos globales
+  totCli=Object.keys(clientesMap).length;
+
+  // Top clientes
+  const topCli=Object.entries(clientesMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  return{tercs,totFact,totSvc,totCli,topCli};
+}
+
+async function loadAll(){
+  setBadge('loading','Cargando datos...');
+  let loaded=0;
+
+  // Cargar en paralelo por lotes de 4
+  const batch=4;
+  for(let i=0;i<SHEET_NAMES.length;i+=batch){
+    const chunk=SHEET_NAMES.slice(i,i+batch);
+    await Promise.all(chunk.map(async sh=>{
+      const csv=await fetchSheet(sh);
+      const data=processCSV(csv,sh.key);
+      if(data){
+        allData[sh.key]=data;
+        // Registrar tercerizadoras
+        Object.keys(data.tercs).forEach(t=>allTercs.add(t));
+        loaded++;
+      }
+      console.log(`[GTN] ${sh.name} → ${data?fmt$(data.totFact)+' | '+data.totSvc+' svc':'sin datos'}`);
+    }));
+    setBadge('loading',`Cargando... ${Math.min(i+batch,SHEET_NAMES.length)}/${SHEET_NAMES.length}`);
+  }
+
+  console.log(`[GTN] ✓ ${loaded}/${SHEET_NAMES.length} hojas cargadas`);
+
+  // Mes activo = el más reciente con datos
+  const keysWithData=SHEET_NAMES.map(s=>s.key).filter(k=>allData[k]);
+  activeMes=keysWithData[keysWithData.length-1]||null;
+
+  // Poblar selectores
+  buildSelectors();
+  setBadge('ok',`✓ ${loaded} hojas · Corte: ${keyToLabel(activeMes)}`);
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// SELECTORES
+// ═══════════════════════════════════════════════════════
+function buildSelectors(){
+  const mSel=document.getElementById('mesSelect');
+  mSel.innerHTML='';
+  SHEET_NAMES.filter(s=>allData[s.key]).forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s.key; o.textContent=keyToLabel(s.key);
+    if(s.key===activeMes) o.selected=true;
+    mSel.appendChild(o);
+  });
+  mSel.addEventListener('change',e=>{activeMes=e.target.value;render();});
+
+  const tSel=document.getElementById('tercSelect');
+  tSel.innerHTML='<option value="ALL">Todas</option>';
+  [...allTercs].sort().forEach(t=>{
+    const o=document.createElement('option');
+    o.value=t; o.textContent=t;
+    tSel.appendChild(o);
+  });
+  tSel.addEventListener('change',e=>{filterTerc=e.target.value;render();});
+
+  document.getElementById('cliTipoSelect').addEventListener('change',e=>{filterCliTipo=e.target.value;render();});
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER PRINCIPAL
+// ═══════════════════════════════════════════════════════
+function render(){
+  if(!activeMes||!allData[activeMes]) return;
+  const data=allData[activeMes];
+  const label=keyToLabel(activeMes);
+
+  // Filtrar tercerizadoras
+  const tercs=Object.entries(data.tercs)
+    .filter(([t])=>filterTerc==='ALL'||t===filterTerc)
+    .filter(([t,d])=>{
+      if(filterCliTipo==='ALL') return true;
+      return (d.cliTipo[filterCliTipo]||0)>0;
+    });
+
+  // Totales filtrados
+  let factA=0,factCT=0,svc=0,cli=0;
+  const enlTot={PRINCIPAL:0,BACKUP:0,INFRAESTRUCTURA:0};
+  const tipoTot={ULTIMA_MILLA:0,FIBRA_OSCURA:0,ULTIMA_MILLA_MIXTA:0,CAPACIDAD:0,OTROS:0};
+  const cliTipoTot={CORPORATIVO:0,BANCA:0};
+  const clientesGlob={};
+
+  tercs.forEach(([t,d])=>{
+    const ratio=filterCliTipo==='ALL'?1:(d.cliTipo[filterCliTipo]||0)/(d.svcACount||1);
+    factA+=d.factA;
+    factCT+=d.factCT;
+    svc+=d.svcCount;
+    Object.keys(enlTot).forEach(k=>enlTot[k]+=(d.enlace[k]||0));
+    Object.keys(tipoTot).forEach(k=>tipoTot[k]+=(d.tipo[k]||0));
+    Object.keys(cliTipoTot).forEach(k=>cliTipoTot[k]+=(d.cliTipo[k]||0));
+    Object.entries(d.clientes).forEach(([c,n])=>clientesGlob[c]=(clientesGlob[c]||0)+n);
+  });
+
+  const fact=factA+factCT;
+  cli=Object.keys(clientesGlob).length;
+  const tercActivas=tercs.filter(([,d])=>d.fact>0).length;
+
+  // Mes anterior
+  const keys=SHEET_NAMES.map(s=>s.key).filter(k=>allData[k]);
+  const prevKey=keys[keys.indexOf(activeMes)-1];
+  const prevFact=prevKey?Object.entries(allData[prevKey].tercs)
+    .filter(([t])=>filterTerc==='ALL'||t===filterTerc)
+    .reduce((s,[,d])=>s+d.fact,0):null;
+
+  // ── KPIs ──
+  document.getElementById('corteDate').textContent=label;
+  document.getElementById('kpiFact').textContent=fmt$(fact);
+  document.getElementById('kpiActivo').textContent=fmt$(factA);
+  document.getElementById('kpiCT').textContent=fmt$(factCT);
+  document.getElementById('kpiSvc').textContent=fmtN(svc);
+  document.getElementById('kpiCli').textContent=fmtN(cli);
+  document.getElementById('kpiTerc').textContent=tercActivas;
+  ['kpiMesNombre','kpiMesNombre2','kpiMesNombre3'].forEach(id=>document.getElementById(id).textContent=label);
+
+  const varEl=document.getElementById('kpiVar');
+  if(prevFact!=null){
+    const diff=fact-prevFact;
+    const pct=prevFact>0?(diff/prevFact*100):0;
+    const up=diff>=0;
+    varEl.className='kpi-badge '+(up?'up':'down');
+    varEl.textContent=(up?'▲':'▼')+' '+fmt$(Math.abs(diff))+' vs '+keyToLabel(prevKey)+'  '+(up?'+':'')+pct.toFixed(2)+'%';
+  } else {
+    varEl.className='kpi-badge';varEl.textContent='—';
+  }
+
+  // ── Donuts ──
+  renderDonut('tipoChart','tipoTotal','tipoLegend',
+    ['Última Milla','Fibra Oscura','Ult. Milla Mixta','Capacidad/Starlink','Otros'],
+    [tipoTot.ULTIMA_MILLA,tipoTot.FIBRA_OSCURA,tipoTot.ULTIMA_MILLA_MIXTA,tipoTot.CAPACIDAD,tipoTot.OTROS],
+    ['#00B0F0','#FF44B0','#FFA700','#8B6FE8','#64B4F5']);
+
+  renderDonut('enlaceChart','enlaceTotal','enlaceLegend',
+    ['Principal','Backup','Infraestructura'],
+    [enlTot.PRINCIPAL,enlTot.BACKUP,enlTot.INFRAESTRUCTURA],
+    ['#00B0F0','#FFA700','#8B6FE8']);
+
+  renderDonut('clienteChart','clienteTotal','clienteLegend',
+    ['Corporativo','Banca'],
+    [cliTipoTot.CORPORATIVO,cliTipoTot.BANCA],
+    ['#00B0F0','#FF44B0']);
+
+  // ── Barras por tercerizadora ──
+  const tercSorted=[...tercs].sort((a,b)=>b[1].fact-a[1].fact);
+  const tercLabels=tercSorted.map(([t])=>t);
+  const tercFacts=tercSorted.map(([,d])=>d.fact);
+  const tercSvcs=tercSorted.map(([,d])=>d.svcCount);
+  const tercColorsArr=tercSorted.map(([t],i)=>getTercColor(t,i));
+
+  renderHBar('hbarChart',tercLabels,tercFacts,tercColorsArr,'$');
+  renderHBar('svcChart',tercLabels,tercSvcs,tercColorsArr,'');
+
+  // Bar list
+  const maxFact=Math.max(...tercFacts,1);
+  document.getElementById('barList').innerHTML=tercSorted.map(([t,d],i)=>`
+    <div class="bar-item">
+      <div class="bar-header">
+        <span class="bar-name" style="color:${getTercColor(t,i)}">${t}</span>
+        <span class="bar-vals">${fmt$(d.fact)} · ${fmtN(d.svcCount)} svc</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(d.fact/maxFact*100).toFixed(1)}%;background:${getTercColor(t,i)}"></div></div>
+    </div>`).join('');
+
+  // Top clientes
+  const topCli=Object.entries(clientesGlob).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('clientList').innerHTML=topCli.map(([c,n],i)=>`
+    <div class="client-item">
+      <span class="client-rank">${i+1}</span>
+      <span class="client-name">${c}</span>
+      <span class="client-svc">${n} svc</span>
+    </div>`).join('');
+
+  // Resumen
+  document.getElementById('resumenList').innerHTML=`
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+      <span style="color:var(--muted)">Tercerizadoras</span><span style="font-weight:700">${tercActivas}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+      <span style="color:var(--muted)">Servicios Activos</span><span style="font-weight:700">${fmtN(tercs.reduce((s,[,d])=>s+d.svcACount,0))}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+      <span style="color:var(--muted)">Cancelado en Telcos</span><span style="font-weight:700;color:var(--naranja2)">${fmtN(tercs.reduce((s,[,d])=>s+d.svcCTCount,0))}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+      <span style="color:var(--muted)">Fact. Activo</span><span style="font-weight:700;color:var(--verde)">${fmt$(factA)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:11px">
+      <span style="color:var(--muted)">Fact. Cancel. Telcos</span><span style="font-weight:700;color:var(--naranja2)">${fmt$(factCT)}</span>
+    </div>`;
+
+  // ── Tendencia ──
+  renderTrend();
+}
+
+// ═══════════════════════════════════════════════════════
+// TENDENCIA
+// ═══════════════════════════════════════════════════════
+function renderTrend(){
+  const keys=SHEET_NAMES.map(s=>s.key).filter(k=>allData[k]);
+  const labels=keys.map(keyToLabel);
+
+  // Tercerizadoras a mostrar
+  const tercsList=filterTerc==='ALL'?[...allTercs]:[filterTerc];
+  const tercsSorted=tercsList.filter(t=>keys.some(k=>allData[k]&&allData[k].tercs[t]));
+
+  const datasets=tercsSorted.map((t,i)=>({
+    label:t,
+    data:keys.map(k=>{
+      const d=allData[k]?.tercs[t];
+      return d?Math.round(d.fact):0;
+    }),
+    borderColor:getTercColor(t,i),
+    backgroundColor:getTercColor(t,i)+'22',
+    borderWidth:2,pointRadius:2,tension:0.3,fill:false,
+  }));
+
+  // Total
+  const totals=keys.map(k=>{
+    const data=allData[k];if(!data) return 0;
+    return tercsSorted.reduce((s,t)=>s+(data.tercs[t]?.fact||0),0);
+  });
+
+  if(filterTerc==='ALL'){
+    datasets.unshift({
+      label:'TOTAL',
+      data:totals,
+      borderColor:'#fff',backgroundColor:'rgba(255,255,255,0.05)',
+      borderWidth:2.5,pointRadius:3,tension:0.3,fill:false,borderDash:[4,3],
+    });
+  }
+
+  // Tendencia meta
+  const nonZero=totals.filter(v=>v>0);
+  const maxV=Math.max(...nonZero,0);
+  const avgV=nonZero.length?nonZero.reduce((a,b)=>a+b,0)/nonZero.length:0;
+  const lastV=totals[totals.length-1]||0;
+  const prevV=totals[totals.length-2]||0;
+  const diffV=lastV-prevV;
+  document.getElementById('metaMax').textContent=fmt$(maxV);
+  document.getElementById('metaProm').textContent=fmt$(avgV);
+  document.getElementById('metaUlt').textContent=fmt$(lastV);
+  const dEl=document.getElementById('metaDiff');
+  dEl.textContent=(diffV>=0?'▲ +':'▼ ')+fmt$(Math.abs(diffV));
+  dEl.style.color=diffV>=0?'var(--verde)':'#ff6b6b';
+
+  if(charts.trend) charts.trend.destroy();
+  charts.trend=new Chart(document.getElementById('trendChart'),{
+    type:'line',data:{labels,datasets},
+    options:{responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{display:filterTerc!=='ALL',labels:{color:'rgba(255,255,255,0.7)',font:{size:10},boxWidth:12,padding:10}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt$(c.raw)}}},
+      scales:{x:{ticks:{color:'rgba(155,188,216,0.7)',font:{size:9},maxRotation:45},grid:{color:'rgba(255,255,255,0.05)'}},
+              y:{ticks:{color:'rgba(155,188,216,0.7)',font:{size:9},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},grid:{color:'rgba(255,255,255,0.05)'}}}}
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// HELPERS DE CHARTS
+// ═══════════════════════════════════════════════════════
+function renderDonut(canvasId,totalId,legendId,labels,data,colors){
+  const total=data.reduce((a,b)=>a+b,0);
+  document.getElementById(totalId).textContent=fmtN(total);
+  const legend=document.getElementById(legendId);
+  legend.innerHTML=labels.map((l,i)=>data[i]>0?`
+    <div class="legend-item">
+      <span class="legend-dot" style="background:${colors[i]}"></span>
+      <span class="legend-label">${l}</span>
+      <span class="legend-val">${fmtN(data[i])}</span>
+      <span class="legend-pct">${total>0?(data[i]/total*100).toFixed(1):'0.0'}%</span>
+    </div>`:''
+  ).join('');
+  if(charts[canvasId]) charts[canvasId].destroy();
+  charts[canvasId]=new Chart(document.getElementById(canvasId),{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:true,cutout:'72%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+fmtN(c.raw)+' ('+total>0?(c.raw/total*100).toFixed(1):'0'+'%)'}}}}}
+  });
+}
+
+function renderHBar(canvasId,labels,data,colors,prefix){
+  if(charts[canvasId]) charts[canvasId].destroy();
+  charts[canvasId]=new Chart(document.getElementById(canvasId),{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:colors.map(c=>c+'cc'),borderColor:colors,borderWidth:1,borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>prefix==='$'?fmt$(c.raw):fmtN(c.raw)+' svc'}}},
+      scales:{x:{ticks:{color:'rgba(155,188,216,0.7)',font:{size:9},callback:v=>prefix==='$'?(v>=1000?(v/1000).toFixed(0)+'k':v):v},grid:{color:'rgba(255,255,255,0.05)'}},
+              y:{ticks:{color:'#fff',font:{size:9}},grid:{display:false}}}}
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// BADGE
+// ═══════════════════════════════════════════════════════
+function setBadge(type,msg){
+  const b=document.getElementById('loadBadge');
+  b.className='loading-badge'+(type==='ok'?' ok':'');
+  b.innerHTML=type==='loading'?`<span class="spinner"></span> ${msg}`:msg;
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+loadAll();
+</script>
+</body>
+</html>
