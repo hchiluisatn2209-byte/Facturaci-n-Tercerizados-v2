@@ -747,6 +747,7 @@ function renderTrend(tercEntries,factA,factCT,svcA,svcCT){
     backgroundColor:getTercColor(t,i)+'cc',
     borderColor:getTercColor(t,i),
     borderWidth:0,stack:'fact',order:2,
+    datalabels:{display:false},
   }));
 
   // Línea de total
@@ -756,12 +757,34 @@ function renderTrend(tercEntries,factA,factCT,svcA,svcCT){
       .filter(([t])=>activeTerc.has('ALL')||activeTerc.has(t))
       .reduce((s,[,v])=>s+v.fact,0);
   });
+
+  // Dataset para datalabels encima de cada barra (línea invisible con los totales)
+  const totalSvcs=keys.map(k=>{
+    const d=allData[k];if(!d)return 0;
+    return Object.entries(d.tercs)
+      .filter(([t])=>activeTerc.has('ALL')||activeTerc.has(t))
+      .reduce((s,[,v])=>s+v.svcCount,0);
+  });
+
   datasets.push({
     type:'line',label:'Total',data:totals,
     borderColor:'#FF44B0',backgroundColor:'transparent',
     borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#FF44B0',
     tension:0.3,fill:false,stack:undefined,order:1,
-    datalabels:{display:false},
+    datalabels:{
+      display:true,
+      anchor:'end',align:'top',
+      color:'#fff',
+      font:{size:8,weight:'700',family:"'Barlow Condensed',sans-serif"},
+      formatter:(v,ctx)=>{
+        const k=keys[ctx.dataIndex];
+        const svc=totalSvcs[ctx.dataIndex];
+        const vk=v>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0);
+        return '$'+vk+'\n'+fmtN(svc)+' enl.';
+      },
+      textAlign:'center',
+      padding:{bottom:2},
+    }
   });
 
   // Título
@@ -798,6 +821,7 @@ function renderTrend(tercEntries,factA,factCT,svcA,svcCT){
     data:{labels,datasets},
     options:{
       responsive:true,maintainAspectRatio:false,
+      layout:{padding:{top:40}},
       interaction:{mode:'index',intersect:false},
       plugins:{
         legend:{
