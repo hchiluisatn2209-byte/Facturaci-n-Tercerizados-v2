@@ -143,6 +143,10 @@ footer{text-align:center;padding:16px 36px;border-top:1px solid var(--border);fo
     <span class="filter-label" style="font-size:9px">Corte</span>
     <select class="mes-select" id="mesSelect"></select>
     <span class="filter-info" id="filterInfo">Todas · —</span>
+    <button class="fdd-btn" id="exportBtn" title="Descargar una copia autónoma en HTML (mes y filtros activos)" style="margin-left:auto">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5.5L6 8.5l3-3M1.5 10.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Exportar HTML
+    </button>
     <div class="loading-badge" id="loadBadge"><span class="spinner"></span> Cargando...</div>
   </div>
   <div class="filter-panel" id="filterPanel">
@@ -272,6 +276,7 @@ footer{text-align:center;padding:16px 36px;border-top:1px solid var(--border);fo
 <footer>Realizado por: Proyectos e Implementación · GTN &nbsp;|&nbsp; Fuente: TERC_GESTIÓN_FACTURACIÓN · Google Sheets</footer>
 
 <script>
+const PRISTINE_HTML='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
 // ═══════════════════════════════════════════════════════
 // CONFIGURACIÓN
 // ═══════════════════════════════════════════════════════
@@ -302,7 +307,6 @@ const SHEET_NAMES=[
   {key:'2026-07',name:'PROYECCION - JUlIO 2026',      gid:'678488890'},
   {key:'2026-08',name:'PROYECCION - AGOSTO 2026',     gid:'1773158770'},
   {key:'2026-09',name:'PROYECCION - SEPTIEMBRE 2026', gid:'113875412'},
-  {key:'2026-10',name:'PROYECCION - OCTUBRE 2026',    gid:'206147950'},
 ];
 
 const TERC_COLORS={
@@ -909,6 +913,34 @@ function setBadge(type,msg){
   b.className='loading-badge'+(type==='ok'?' ok':'');
   b.innerHTML=type==='loading'?`<span class="spinner"></span> ${msg}`:msg;
 }
+
+// ═══════════════════════════════════════════════════════
+// EXPORTAR HTML (copia autónoma, sin depender de Google Sheets)
+// ═══════════════════════════════════════════════════════
+function exportHTML(){
+  if(!activeMes||!allData[activeMes]){alert('Aún no hay datos cargados.');return;}
+  const snap={allData:allData,tercs:[...allTercs],mes:activeMes,terc:[...activeTerc],fecha:new Date().toLocaleString('es-EC')};
+  const json=JSON.stringify(snap).replace(/</g,'\\u003c');
+  const CLOSE='</scr'+'ipt>';
+  const real='\nload'+'All();\n'+CLOSE;
+  let html=PRISTINE_HTML;
+  const idx=html.lastIndexOf(real);
+  if(idx<0){alert('No se pudo generar el archivo.');return;}
+  const boot='\nconst __SNAP='+json+';\n'+
+    'allData=__SNAP.allData;allTercs=new Set(__SNAP.tercs);activeMes=__SNAP.mes;activeTerc=new Set(__SNAP.terc);\n'+
+    'buildSelectors();\n'+
+    'document.querySelectorAll("#filterTercChips .chip").forEach(c=>c.classList.toggle("active",activeTerc.has(c.dataset.t)));\n'+
+    'setBadge("ok","Copia exportada · "+__SNAP.fecha);\n'+
+    'render();\n'+CLOSE;
+  html=html.slice(0,idx)+boot+html.slice(idx+real.length);
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='dashboard_tercerizados_'+keyToLabel(activeMes).replace(/[^A-Za-z0-9]+/g,'_')+'.html';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+document.getElementById('exportBtn').addEventListener('click',exportHTML);
 
 loadAll();
 </script>
